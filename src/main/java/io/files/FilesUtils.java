@@ -12,7 +12,7 @@ public class FilesUtils {
         File copy = new File("copy.png");
         System.out.println(copy.exists());
 
-        byte [] buffer = new byte[256];
+        byte [] buffer = new byte[8 * 1024];
         try(FileInputStream in = new FileInputStream(file);
             FileOutputStream out = new FileOutputStream(copy)) {
             int read;
