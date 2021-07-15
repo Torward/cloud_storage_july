@@ -1,9 +1,7 @@
 package nio;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
@@ -19,6 +17,7 @@ public class Server {
     private Selector selector;
     private String name = "user";
     private static int cnt = 1;
+    private Path root = Paths.get(".");
 
     public Server() throws IOException {
 
@@ -52,22 +51,9 @@ public class Server {
         SocketChannel channel = (SocketChannel) key.channel();
         String name = (String) key.attachment();
         int readKey;
-        // char command = cBuffer.get();
+
 
         StringBuilder sb = new StringBuilder();
-        //---------------------------------------------------------------------------------------
-        //Path root = Paths.get(".");//Путь текущего каталога
-
-//        Files.walkFileTree(root,new HashSet<>(),1, new SimpleFileVisitor<Path>(){
-//            @Override
-//            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-//                System.out.println(file);
-//                return super.visitFile(file, attrs);
-//            }
-//        });
-        //-----------------------------------------------------------------------------------------------
-        // channel.read(buffer);
-        //String command = new String(buffer.array()).trim();
 
 
         while (true) {
@@ -84,47 +70,37 @@ public class Server {
 
                     if (sb.toString().equals("ls")) {
                         Path root = Paths.get(".");
-                        root.getFileName()
-
                         Files.walkFileTree(root, new HashSet<>(), 1, new SimpleFileVisitor<Path>() {
 
                             @Override
                             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                                 System.out.println(file);
-
-                                channel.write(ByteBuffer.wrap((file + ":" + sb).getBytes(StandardCharsets.UTF_8)));
-
+                                channel.write(ByteBuffer.wrap((file + " ").getBytes(StandardCharsets.UTF_8)));
                                 return super.visitFile(file, attrs);
-
                             }
 
                         });
                     }
-                    RandomAccessFile raf = new RandomAccessFile(sb.toString(),"r");
-                    Files.lines(Paths.get(FILE_NAME), StandardCharsets.UTF_8).forEach(System.out::println);
-                    if(sb.toString().equals("cat")){
-
-                        raf.read();
-                    }
-
                     sb.append((char) buffer.get());
-
                 }
                 buffer.clear();
             } else {
                 break;
             }
-
         }
 
+        if (sb.toString().startsWith("cat")) {
+                System.out.println("Зашли в функцию" + sb);
+                Path clientFileName = Paths.get(String.valueOf(sb.substring(4)).trim());
+                Path root = Paths.get("./", String.valueOf(clientFileName));
+                byte[] bytes = Files.readAllBytes(root);
+                String text = new String(bytes, StandardCharsets.UTF_8);
+                channel.write(ByteBuffer.wrap((text + " ").getBytes(StandardCharsets.UTF_8)));
+        }
         System.out.println("received: " + sb);
-
         for (SelectionKey selectionKey : selector.keys()) {
-
             if (selectionKey.isValid() && selectionKey.channel() instanceof SocketChannel) {
-
                 SocketChannel ch = (SocketChannel) selectionKey.channel();
-
                 ch.write(ByteBuffer.wrap((name + ": " + sb).getBytes(StandardCharsets.UTF_8)));
             }
         }
